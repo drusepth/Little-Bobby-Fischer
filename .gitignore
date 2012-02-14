@@ -1,0 +1,8 @@
+*.o
+*.pyc
+*.a
+*~
+*.so
+*.glog
+*.gamelog
+moc_*
