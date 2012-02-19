@@ -146,7 +146,7 @@ class Match(DefaultGameWorld):
     if stalemate is True:
       self.declareDraw("With only Kings and Bishops, with all of the Bishops on the same color, Checkmate is impossible, Stalemate!")
       return
-    moveList = sorted(self.objects.moves) #all moves, earlier in the array means later in the game
+    moveList = sorted(self.objects.moves, key=lambda X: X.id) #all moves, earlier in the array means later in the game
     moveList = [i.toList()[1:5] for i in reversed(moveList)] #we only care about the start and end positions
     if len(moveList) >= 8 and self.TurnsToStalemate <= 92:
       #print "Debugging info: " + `len(moveList[0])`+ ", " + `self.TurnsToStalemate` + `moveList[0:8]`

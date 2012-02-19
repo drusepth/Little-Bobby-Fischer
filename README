@@ -87,7 +87,7 @@ be too hard to follow for any other distribution or mac.
 
 Install Prerequisites: 
 Ubuntu-
-  sudo apt-get install libqt-dev libqt-opengl-dev
+  sudo apt-get install libqt4-dev libqt4-opengl-dev flex
 
 Mac- 
   http://qt.nokia.com/downloads
