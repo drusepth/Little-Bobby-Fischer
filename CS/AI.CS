@@ -6,11 +6,11 @@ class AI : BaseAI
 {
   public override string username()
   {
-    return "Shell AI";
+    return "eggs";
   }
   public override string password()
   {
-    return "password";
+    return "thm89253";
   }
 
   //This function is called each time it is your turn
