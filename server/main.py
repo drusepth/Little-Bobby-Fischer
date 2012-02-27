@@ -16,7 +16,6 @@ import sys
 class GameApp(AccountsAppMixin, BaseApp):
   games = {}
   nextid = 1
-
   def __init__(self, protocol):
     BaseApp.__init__(self, protocol)
     AccountsAppMixin.__init__(self)
@@ -31,6 +30,8 @@ class GameApp(AccountsAppMixin, BaseApp):
     if self.game is not None:
       return ("create-game-denied", "You are already in a game.")
     else:
+      while GameApp.nextid in GameApp.games:
+        GameApp.nextid += 1
       print "Creating game %d"%(GameApp.nextid,)
       self.user = self.name
       self.screenName = self.name
@@ -69,7 +70,10 @@ class GameApp(AccountsAppMixin, BaseApp):
           return ["join-game-denied", "Game is full"]
       return ["join-accepted", gameNumber]
     except KeyError:
-      return ["join-game-denied", "No such game"]
+      self.game = Match(gameNumber, self)
+      self.game.addPlayer(self)
+      GameApp.games[gameNumber] = self.game
+      return ["create-game", self.game.id]
 
   @protocolmethod
   @errorBuffer

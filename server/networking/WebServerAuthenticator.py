@@ -28,7 +28,7 @@ class WebServerAuthenticator(object):
         login - the team's login
         passwd - the team's password
         """
-        print "Warning, webserver login turned off, remove line 32 in networking/WebServerAuthenticator.py"
+        #print "Warning, webserver login turned off, remove line 32 in networking/WebServerAuthenticator.py"
         return login
         # Make a connection to the specified URL
         conn = httplib.HTTPConnection(self.url)
