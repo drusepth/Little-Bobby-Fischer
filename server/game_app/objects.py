@@ -113,6 +113,8 @@ class Piece:
           return ("White" if self.game.playerID == 0 else "Black") + " Attempted to Castle through Check!"
         rook.file = file+1
       if self.type is ord('K') and self.file-file == -2:
+        if self.game.inCheck(self.owner):
+          return ("White" if self.game.playerID == 0 else "Black") + " Attempted to Castle out of Check!"
         rook = board[self.rank-1][7]
         self.file = file-1
         if self.game.inCheck(self.owner):
