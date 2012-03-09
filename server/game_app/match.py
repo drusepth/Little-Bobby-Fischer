@@ -174,7 +174,7 @@ class Match(DefaultGameWorld):
 
   def declareWinner(self, winner, reason=''):
     self.winner = winner
-
+    self.sendStatus(self.spectators)
     msg = ["game-winner", self.id, self.winner.user, self.getPlayerIndex(self.winner), reason]
     self.scribe.writeSExpr(msg)
     self.scribe.finalize()
