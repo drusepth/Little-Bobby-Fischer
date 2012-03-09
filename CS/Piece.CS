@@ -8,6 +8,21 @@ public class Piece
   public IntPtr ptr;
   protected int ID;
   protected int iteration;
+
+  public int expected_rank;
+  public int expected_file;
+
+  public int ExpectedRank
+  {
+      get { return expected_rank; }
+      set { expected_rank = value; }
+  }
+
+  public int ExpectedFile
+  {
+      get { return expected_file; }
+      set { expected_file = value; }
+  }
   
   public Piece()
   {
@@ -18,6 +33,9 @@ public class Piece
     ptr = p;
     ID = Client.pieceGetId(ptr);
     iteration = BaseAI.iteration;
+
+    ExpectedFile = getFile();
+    ExpectedRank = getRank();
   }
 
   public bool validify()
