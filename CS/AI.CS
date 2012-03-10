@@ -53,6 +53,10 @@ public class AI : BaseAI
           }
       }
 
+      // Order moves by Iterative-Deepening Depth-Limited MiniMax with a material advantage state 
+      // eval heuristic
+
+
       // Pick a random move and make that move
       if (valid_moves.Count > 0)
       {
@@ -109,8 +113,8 @@ public class AI : BaseAI
       piece.ExpectedRank = destination.Rank;
       if (IsKingInCheck())
       {
-          Debug(String.Format("Pruned {0} ({1}, {2}) to ({3}, {4})",
-                  (char)piece.getType(), origin.File, origin.Rank, destination.File, destination.Rank));
+          Debug(String.Format("Pruned {0} ({1}, {2}) to ({3}, {4})", 
+              (char)piece.getType(), origin.File, origin.Rank, destination.File, destination.Rank));
 
           // Revert the board back to its original state
           piece.ExpectedFile = origin.File;
@@ -149,127 +153,77 @@ public class AI : BaseAI
   {
       // Grab our king's current (expected) location
       Piece king = FindMyKing();
+      Coordinate king_location = new Coordinate(king.ExpectedFile, king.ExpectedRank);
 
-      // Look for rook baddies
-      foreach (Coordinate threat in Rook.GetMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, false))
+      // Dictionary of moves to look for, spanning outward from king
+      var threats = new Dictionary<char, List<Coordinate>>() 
       {
-          Piece bad_dude = GetPieceAt(threat);
-          if (bad_dude != null && ((char)bad_dude.getType() == 'R' || (char)bad_dude.getType() == 'Q') && bad_dude.getOwner() != playerID())
-          {
-              Console.WriteLine("Uh oh, {0} at ({1}, {2})", (char)bad_dude.getType(), threat.File, threat.Rank);
-              return true;
-          }
-      }
+          { 'R', Rook.GetMoves(king_location, this) },
+          { 'B', Bishop.GetMoves(king_location, this) },
+          { 'N', Knight.GetMoves(king_location, this) },
+          { 'P', Pawn.GetAttackMoves(king_location, this) },
+          { 'K', King.GetMoves(king_location, this) },
+          { 'Q', Queen.GetMoves(king_location, this) }
+      };
 
-      // Look for bishop baddies
-      foreach (Coordinate threat in Bishop.GetMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, false))
+      // For every piece type...
+      foreach (char piece_type in new List<Char>() { 'R', 'B', 'N', 'P', 'K', 'Q' })
       {
-          Piece bad_dude = GetPieceAt(threat);
-          if (bad_dude != null && ((char)bad_dude.getType() == 'B' || (char)bad_dude.getType() == 'Q') && bad_dude.getOwner() != playerID())
-          {
-              Console.WriteLine("Uh oh, {0} at ({1}, {2})", (char)bad_dude.getType(), threat.File, threat.Rank);
-              return true;
-          }
-      }
+          // Look up threats in the dictionary directly rather than using a foreach
+          // to avoid duplicating move lists in memory.
+          var threat = threats[piece_type];
 
-      // Look for knight baddies #todo ownership cleanup in Knight.cs #todo get rid of last param
-      foreach (Coordinate threat in Knight.GetMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, false))
-      {
-          Piece bad_dude = GetPieceAt(threat);
-          if (bad_dude != null && (char)bad_dude.getType() == 'N' && bad_dude.getOwner() != playerID())
+          // ...look at all moves they could make if they were in the king's location...
+          foreach (Coordinate destination in threat) 
           {
-              Console.WriteLine("Uh oh, {0} at ({1}, {2})", (char)bad_dude.getType(), threat.File, threat.Rank);
-              return true;
-          }
-      }
+              // ...and see if there's actually an enemy piece there that could attack back
+              Piece bad_dude = GetPieceAt(destination);
 
-      // Look for pawn baddies, they're the worst #todo ownership cleanup
-      foreach (Coordinate threat in Pawn.GetAttackMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, true))
-      {
-          Piece bad_dude = GetPieceAt(threat);
-          if (GetPieceAt(threat) != null && (char)GetPieceAt(threat).getType() == 'P')
-          {
-              Console.WriteLine("Uh oh, {0} at ({1}, {2})", (char)bad_dude.getType(), threat.File, threat.Rank);
-              return true;
-          }
-      }
-
-      // Look for other kings, because we're retarded #todo ownership cleanup
-      foreach (Coordinate threat in King.GetMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, false))
-      {
-          Piece bad_dude = GetPieceAt(threat);
-          if (bad_dude != null && bad_dude.getOwner() != playerID() && (char)bad_dude.getType() == 'K')
-          {
-              Console.WriteLine("Uh oh, {0} at ({1}, {2})", (char)bad_dude.getType(), threat.File, threat.Rank);
-              return true;
+              // If (a piece exists there) and (it's of the right type) and (it's not ours)
+              if (bad_dude != null && (char)bad_dude.getType() == piece_type && bad_dude.getOwner() != playerID())
+              {
+                  // Prune!
+                  return true;
+              }
           }
       }
 
       return false;
   }
 
-  public bool IsWhite(Piece p)
-  {
-      return p.getOwner() == 0;
-  }
+  // Returns whether a piece's owner is White
+  public bool IsWhite(Piece p) { return p.getOwner() == 0; }
 
+  // Looks through all pieces and finds the king; returns a reference to it.
   public Piece FindMyKing()
   {
       for (int i = 0; i < pieces.Length; i++)
       {
-          if (pieces[i].getOwner() == playerID())
+          if (pieces[i].getOwner() == playerID() && (char)pieces[i].getType() == 'K')
           {
-              if ((char)pieces[i].getType() == 'K')
-              {
-                  return pieces[i];
-              }
+              return pieces[i];
           }
       }
 
-      return null;
+      // We should be guaranteed a king. This is chess, after all.
+      throw new Exception("No king found!");
   }
 
   public bool MyPieceExistsAt(Coordinate c)
   {
-      for (int i = 0; i < pieces.Length; i++)
-      {
-          if (pieces[i].ExpectedRank == c.Rank && pieces[i].ExpectedFile == c.File)
-          {
-              if (pieces[i].getOwner() == playerID())
-              {
-                  return true;
-              }
-              else
-              {
-                  return false;
-              }
-          }
-      }
-      return false;
+      Piece piece = GetPieceAt(c);
+      return piece != null && piece.getOwner() == playerID();
   }
 
   public bool IsMyPiece(Piece p)
   {
-      return p.getOwner() == playerID();
+      return p != null && p.getOwner() == playerID();
   }
 
   public bool EnemyPieceExistsAt(Coordinate c)
   {
-      for (int i = 0; i < pieces.Length; i++)
-      {
-          if (pieces[i].ExpectedRank == c.Rank && pieces[i].ExpectedFile == c.File)
-          {
-              if (pieces[i].getOwner() != playerID())
-              {
-                  return true;
-              }
-              else
-              {
-                  return false;
-              }
-          }
-      }
-      return false;
+      Piece piece = GetPieceAt(c);
+      return piece != null && piece.getOwner() != playerID();
   }
 
   public Piece GetPieceAt(Coordinate c)
@@ -286,14 +240,7 @@ public class AI : BaseAI
 
   public bool PieceExistsAt(Coordinate c)
   {
-      for (int i = 0; i < pieces.Length; i++)
-      {
-          if (pieces[i].ExpectedRank == c.Rank && pieces[i].ExpectedFile == c.File)
-          {
-              return true;
-          }
-      }
-      return false;
+      return GetPieceAt(c) != null;
   }
 
   private void PrintValidMoves(List<MoveReference> move_list, MoveReference chosen)
@@ -302,6 +249,7 @@ public class AI : BaseAI
       for (int i = 0; i < move_list.Count; i++)
       {
           MoveReference mv = move_list[i];
+          // #todo don't use getId() lolol
           if (mv.Piece.getId() == chosen.Piece.getId())
           {
               Console.Write("({1}, {2})", (char)mv.Piece.getType(), mv.To.File, mv.To.Rank);
@@ -374,7 +322,6 @@ public class AI : BaseAI
   public override void init()
   {
       generator = new Random();
-      piece_by_coordinate = new Hashtable();
   }
 
   //This function is called once, after your last turn
@@ -392,27 +339,26 @@ public class AI : BaseAI
       switch (piece)
       {
           case 'K':
-              return King.GetMoves(at, game, false);
+              return King.GetMoves(at, game);
 
           case 'Q':
-              return Queen.GetMoves(at, game, false);
+              return Queen.GetMoves(at, game);
               
           case 'B':
-              return Bishop.GetMoves(at, game, false);
+              return Bishop.GetMoves(at, game);
         
           case 'N':
-              return Knight.GetMoves(at, game, false);
+              return Knight.GetMoves(at, game);
                
           case 'R':
-              return Rook.GetMoves(at, game, false);
+              return Rook.GetMoves(at, game);
             
           case 'P':
-              return Pawn.GetMoves(at, game, false);
+              return Pawn.GetMoves(at, game);
 
           default:
               // Unknown piece, no moves for it. Go directly to jail.
-              Debug("Looking for moves for unknown piece type!");
-              return new List<Coordinate>();
+              throw new Exception("Looking for moves for unknown piece type!");
       }
   }
 }

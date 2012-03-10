@@ -10,7 +10,7 @@ public class Bishop
         get { return 3.33; }
     }
 
-    public static List<Coordinate> GetMoves(Coordinate current, AI game, bool flip_color)
+    public static List<Coordinate> GetMoves(Coordinate current, AI game)
     {
         List<Coordinate> moves = new List<Coordinate>();
 

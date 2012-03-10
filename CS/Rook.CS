@@ -10,7 +10,7 @@ class Rook
     }
 
     // Returns all moves a rook can make from a given coordinate
-    public static List<Coordinate> GetMoves(Coordinate current, AI game, bool flip_color)
+    public static List<Coordinate> GetMoves(Coordinate current, AI game)
     {
         List<Coordinate> moves = new List<Coordinate>();
 
