@@ -3,24 +3,34 @@ using System.Collections.Generic;
 
 class Pawn
 {
+    // 
+    public static double Value
+    {
+        get { return 1.0; }
+    }
+
     public static List<Coordinate> GetMoves(Coordinate current, AI game, bool flip_color)
     {
-        List<Coordinate> moves = new List<Coordinate>();
+        // The pawn, himself
         Piece pawn = game.GetPieceAt(current);
 
-        int color = game.IsWhite(pawn) ? 1 : -1;
+        // List of moves this pawn can make
+        List<Coordinate> moves = new List<Coordinate>();
+        
+        // Rank multiplier dependant on piece color
+        int color = game.IsWhite(pawn) ? 1 : -1; // #todo * flip_color ternary lol
 
+        // Flip the rank multiplier if we're looking from the opponent's perspective
         if (flip_color)
         {
-            if (color == 1)
-                color = -1;
-            else
-                color = 1;
+            //color *= -1;
         }
 
+        // If a pawn is in its corresponding start position (hasn't moved), then we want to handle
+        // it being able to move forward two spaces in addition to just one.
         if (pawn.ExpectedRank == (color == 1 ? 2 : 7))
         {
-            // Hasn't moved, allow SUPER JUMP (assuming nobody is in the way)
+            // There must be no pieces in the way to move forward two
             if (!game.PieceExistsAt(new Coordinate(current.File, current.Rank + 1 * color)) &&
                 !game.PieceExistsAt(new Coordinate(current.File, current.Rank + 2 * color)))
             {
@@ -35,10 +45,10 @@ class Pawn
         }
 
         // Attack!
-        moves.AddRange(GetAttackMoves(current, game, false));
+        moves.AddRange(GetAttackMoves(current, game, flip_color));
 
         // En Passant
-        moves.AddRange(EnPassant(current, game, false));
+        moves.AddRange(EnPassant(current, game, flip_color));
 
         return moves;
     }
@@ -50,7 +60,7 @@ class Pawn
         int color = game.IsWhite(piece) ? 1 : -1;
 
         // Attack!
-        if (!flip_color)
+        if (flip_color)
         {
             // Left
             if (game.EnemyPieceExistsAt(new Coordinate(current.File - 1, current.Rank + (1 * color))))
@@ -65,11 +75,11 @@ class Pawn
         }
         else
         {
-            if (!game.MyPieceExistsAt(new Coordinate(current.File - 1, current.Rank + (1 * color))))
+            if (game.EnemyPieceExistsAt(new Coordinate(current.File - 1, current.Rank + (1 * color))))
             {
                 moves.Add(new Coordinate(current.File - 1, current.Rank + (1 * color)));
             }
-            if (!game.MyPieceExistsAt(new Coordinate(current.File + 1, current.Rank + (1 * color))))
+            if (game.EnemyPieceExistsAt(new Coordinate(current.File + 1, current.Rank + (1 * color))))
             {
                 moves.Add(new Coordinate(current.File + 1, current.Rank + (1 * color)));
             }

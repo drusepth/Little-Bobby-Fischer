@@ -19,36 +19,39 @@ public class AI : BaseAI
 
   public void Debug(string s)
   {
-    //Console.WriteLine(s);
+    Console.WriteLine(s);
   }
 
-  //This function is called each time it is your turn
-  //Return true to end your turn, return false to ask the server for updated information
   public override bool run()
   {
+      // Initialize Expected Files and Ranks for every piece
       for (int p = 0; p < pieces.Length; p++)
       {
           pieces[p].ExpectedFile = pieces[p].getFile();
           pieces[p].ExpectedRank = pieces[p].getRank();
       }
 
+      // List of all valid moves, populated as we go
       List<MoveReference> valid_moves = new List<MoveReference>();
-      for (int p = 0; p < pieces.Length; p++)
+
+      // Populate valid_moves with board-legal moves
+      foreach (Piece piece in pieces)
       {
           // Only find moves for my pieces
-          if (pieces[p].getOwner() == playerID())
+          if (piece.getOwner() == playerID())
           {
-              // Get all moves for this piece
-              List<Coordinate> moves_for_piece = GetMovesFor((char)pieces[p].getType(), new Coordinate(pieces[p].ExpectedFile, pieces[p].ExpectedRank), this);
-              for (int m = 0; m < moves_for_piece.Count; m++)
+              // Get all moves for this piece at its current location
+              Coordinate here = new Coordinate(piece.ExpectedFile, piece.ExpectedRank);
+              foreach (Coordinate destination in GetMovesFor((char)piece.getType(), here, this))
               {
-                  valid_moves.Add(new MoveReference(pieces[p], moves_for_piece[m]));
+                  MoveReference move = new MoveReference(piece, destination);
+                  if (IsValidMove(move))
+                  {
+                      valid_moves.Add(move);
+                  }
               }
           }
       }
-
-      // Prune to avoid putting ourselves in check (and staying in check)
-      PruneByCheckAvoidance(valid_moves);
 
       // Pick a random move and make that move
       if (valid_moves.Count > 0)
@@ -70,70 +73,88 @@ public class AI : BaseAI
     return true;
   }
 
-  private void PruneByCheckAvoidance(List<MoveReference> move_list)
+  // Determines whether a move is valid given the current board state, looking at
+  // whether it ends up on an ally piece and whether it ends with us in check.
+  private bool IsValidMove(MoveReference move)
   {
-      for (int i = 0; i < move_list.Count; i++)
+      // Piece that is moving
+      Piece piece = move.Piece;
+
+      // Where the piece is coming from (so we can revert later)
+      Coordinate origin = new Coordinate(piece.ExpectedFile, piece.ExpectedRank);
+
+      // Where this piece is moving to
+      Coordinate destination = move.To;
+
+      // Find any pieces that might be where we're going
+      Piece target_piece = GetPieceAt(destination);
+      if (target_piece != null)
       {
-          MoveReference mr = move_list[i];
-
-          int rank = mr.Piece.ExpectedRank;
-          int file = mr.Piece.ExpectedFile;
-
-          // Remove any piece that might be there
-          Piece enemy_piece = GetPieceAt(mr.To);
-          int erank = 0;
-          int efile = 0;
-
-          // If a piece is being captured
-          if (enemy_piece != null)
+          // First, make sure the piece at that destination isn't ours!
+          if (target_piece.getOwner() == playerID())
           {
-              erank = enemy_piece.ExpectedRank;
-              efile = enemy_piece.ExpectedFile;
-
-              // Move enemy piece off the board
-              enemy_piece.ExpectedFile = -1000;
-              enemy_piece.ExpectedRank = -1000;
+              // If it's ours, we clearly cannot make this move
+              return false;
           }
 
-          mr.Piece.ExpectedFile = mr.To.File;
-          mr.Piece.ExpectedRank = mr.To.Rank;
-
-          bool in_check = false;
-          if (IsKingInCheck())
-          {
-              in_check = true;
-              Console.WriteLine("Pruned {0} ({1}, {2}) to ({3}, {4})",
-                  (char)mr.Piece.getType(), file, rank, mr.To.File, mr.To.Rank);
-          }
-
-          // Revert state to original
-          mr.Piece.ExpectedFile = file;
-          mr.Piece.ExpectedRank = rank;
-          if (EnemyPieceExistsAt(mr.To))
-          {
-              GetPieceAt(mr.To).ExpectedFile = efile;
-              GetPieceAt(mr.To).ExpectedRank = erank;
-          }
-
-          if (in_check)
-          {
-              // Prune move, doesn't get me out of check
-              move_list.RemoveAt(i);
-              // Hop back a move
-              i--;
-          }
+          // Temporarily update the board state to take this piece off the board
+          target_piece.ExpectedRank = -1;
+          target_piece.ExpectedFile = -1;
       }
+
+      // We want to make sure making this move will not place us in check. To do that,
+      // we're going to look outward from the King after making the move and see if
+      // any enemy pieces are putting us in check.
+      piece.ExpectedFile = destination.File;
+      piece.ExpectedRank = destination.Rank;
+      if (IsKingInCheck())
+      {
+          Debug(String.Format("Pruned {0} ({1}, {2}) to ({3}, {4})",
+                  (char)piece.getType(), origin.File, origin.Rank, destination.File, destination.Rank));
+
+          // Revert the board back to its original state
+          piece.ExpectedFile = origin.File;
+          piece.ExpectedRank = origin.Rank;
+
+          if (target_piece != null)
+          {
+              target_piece.ExpectedRank = destination.Rank;
+              target_piece.ExpectedFile = destination.File;
+          }
+
+          // Don't make any moves that end with us in check
+          return false;
+      }
+
+      // If the move doesn't leave us in check, it's a valid move. Reverting back to the
+      // original board state before returning true.
+      if (target_piece != null)
+      {
+          target_piece.ExpectedRank = destination.Rank;
+          target_piece.ExpectedFile = destination.File;
+      }
+
+      // And finally, revert the moving piece back to its original state so we can properly
+      // look at other moves
+      piece.ExpectedFile = origin.File;
+      piece.ExpectedRank = origin.Rank;
+
+      // Great success!
+      return true;
   }
 
+  // Given the current board state, look outward from the king and determine if any enemy
+  // pieces can take our fearless leader.
   private bool IsKingInCheck()
   {
+      // Grab our king's current (expected) location
       Piece king = FindMyKing();
 
       // Look for rook baddies
       foreach (Coordinate threat in Rook.GetMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, false))
       {
           Piece bad_dude = GetPieceAt(threat);
-          if (bad_dude != null && ((char)bad_dude.getType() == 'R' || (char)bad_dude.getType() == 'Q'))
+          if (bad_dude != null && ((char)bad_dude.getType() == 'R' || (char)bad_dude.getType() == 'Q') && bad_dude.getOwner() != playerID())
           {
               Console.WriteLine("Uh oh, {0} at ({1}, {2})", (char)bad_dude.getType(), threat.File, threat.Rank);
               return true;
@@ -144,25 +165,25 @@ public class AI : BaseAI
       foreach (Coordinate threat in Bishop.GetMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, false))
       {
           Piece bad_dude = GetPieceAt(threat);
-          if (bad_dude != null && ((char)bad_dude.getType() == 'B' || (char)bad_dude.getType() == 'Q'))
+          if (bad_dude != null && ((char)bad_dude.getType() == 'B' || (char)bad_dude.getType() == 'Q') && bad_dude.getOwner() != playerID())
           {
               Console.WriteLine("Uh oh, {0} at ({1}, {2})", (char)bad_dude.getType(), threat.File, threat.Rank);
               return true;
           }
       }
 
-      // Look for knight baddies
+      // Look for knight baddies #todo ownership cleanup in Knight.cs #todo get rid of last param
       foreach (Coordinate threat in Knight.GetMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, false))
       {
           Piece bad_dude = GetPieceAt(threat);
-          if (bad_dude != null && (char)bad_dude.getType() == 'N')
+          if (bad_dude != null && (char)bad_dude.getType() == 'N' && bad_dude.getOwner() != playerID())
           {
               Console.WriteLine("Uh oh, {0} at ({1}, {2})", (char)bad_dude.getType(), threat.File, threat.Rank);
               return true;
           }
       }
 
-      // Look for pawn baddies, they're the worst
+      // Look for pawn baddies, they're the worst #todo ownership cleanup
       foreach (Coordinate threat in Pawn.GetAttackMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, true))
       {
           Piece bad_dude = GetPieceAt(threat);
@@ -173,7 +194,7 @@ public class AI : BaseAI
           }
       }
 
-      // Look for other kings, because we're retarded
+      // Look for other kings, because we're retarded #todo ownership cleanup
       foreach (Coordinate threat in King.GetMoves(new Coordinate(king.ExpectedFile, king.ExpectedRank), this, false))
       {
           Piece bad_dude = GetPieceAt(threat);

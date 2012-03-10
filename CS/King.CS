@@ -5,6 +5,11 @@ using System.Text;
 
 class King
 {
+    public static double Value
+    {
+        get { return 1e6; }
+    }
+
     public static List<Coordinate> GetMoves(Coordinate current, AI game, bool flip_color)
     {
         List<Coordinate> moves = new List<Coordinate>();

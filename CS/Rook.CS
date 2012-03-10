@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 class Rook
 {
+    // 
+    public static double Value
+    {
+        get { return 5.1; }
+    }
+
+    // Returns all moves a rook can make from a given coordinate
     public static List<Coordinate> GetMoves(Coordinate current, AI game, bool flip_color)
     {
         List<Coordinate> moves = new List<Coordinate>();
@@ -11,40 +18,10 @@ class Rook
         for (int rank = current.Rank + 1; rank < 9; rank++)
         {
             Coordinate c = new Coordinate(current.File, rank);
+            moves.Add(c);
             if (game.PieceExistsAt(c))
             {
-                // If we're looking for pieces from the opponent's perspective
-                if (flip_color)
-                {
-                    if (game.MyPieceExistsAt(c))
-                    {
-                        moves.Add(c);
-                        break;
-                    }
-
-                    if (game.EnemyPieceExistsAt(c))
-                    {
-                        break;
-                    }
-                }
-                // If we're looking for pieces from our own perspective
-                else
-                {
-                    if (game.MyPieceExistsAt(c))
-                    {
-                        break;
-                    }
-
-                    if (game.EnemyPieceExistsAt(c))
-                    {
-                        moves.Add(c);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                moves.Add(c);
+                break;
             }
         }
 
@@ -52,40 +29,10 @@ class Rook
         for (int file = current.File + 1; file < 9; file++)
         {
             Coordinate c = new Coordinate(file, current.Rank);
+            moves.Add(c);
             if (game.PieceExistsAt(c))
             {
-                // If we're looking for pieces from the opponent's perspective
-                if (flip_color)
-                {
-                    if (game.MyPieceExistsAt(c))
-                    {
-                        moves.Add(c);
-                        break;
-                    }
-
-                    if (game.EnemyPieceExistsAt(c))
-                    {
-                        break;
-                    }
-                }
-                // If we're looking for pieces from our own perspective
-                else
-                {
-                    if (game.MyPieceExistsAt(c))
-                    {
-                        break;
-                    }
-
-                    if (game.EnemyPieceExistsAt(c))
-                    {
-                        moves.Add(c);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                moves.Add(c);
+                break;
             }
         }
 
@@ -93,40 +40,10 @@ class Rook
         for (int rank = current.Rank - 1; rank > 0; rank--)
         {
             Coordinate c = new Coordinate(current.File, rank);
+            moves.Add(c);
             if (game.PieceExistsAt(c))
             {
-                // If we're looking for pieces from the opponent's perspective
-                if (flip_color)
-                {
-                    if (game.MyPieceExistsAt(c))
-                    {
-                        moves.Add(c);
-                        break;
-                    }
-
-                    if (game.EnemyPieceExistsAt(c))
-                    {
-                        break;
-                    }
-                }
-                // If we're looking for pieces from our own perspective
-                else
-                {
-                    if (game.MyPieceExistsAt(c))
-                    {
-                        break;
-                    }
-
-                    if (game.EnemyPieceExistsAt(c))
-                    {
-                        moves.Add(c);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                moves.Add(c);
+                break;
             }
         }
 
@@ -134,40 +51,10 @@ class Rook
         for (int file = current.File - 1; file > 0; file--)
         {
             Coordinate c = new Coordinate(file, current.Rank);
+            moves.Add(c);
             if (game.PieceExistsAt(c))
             {
-                // If we're looking for pieces from the opponent's perspective
-                if (flip_color)
-                {
-                    if (game.MyPieceExistsAt(c))
-                    {
-                        moves.Add(c);
-                        break;
-                    }
-
-                    if (game.EnemyPieceExistsAt(c))
-                    {
-                        break;
-                    }
-                }
-                // If we're looking for pieces from our own perspective
-                else
-                {
-                    if (game.MyPieceExistsAt(c))
-                    {
-                        break;
-                    }
-
-                    if (game.EnemyPieceExistsAt(c))
-                    {
-                        moves.Add(c);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                moves.Add(c);
+                break;
             }
         }
 
