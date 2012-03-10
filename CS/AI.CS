@@ -12,7 +12,7 @@ public class AI : BaseAI
   }
   public override string password()
   {
-    return "thm88253";
+    return "durrhurr";
   }
 
   public Hashtable piece_by_coordinate;
